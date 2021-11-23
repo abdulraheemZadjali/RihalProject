@@ -1,0 +1,145 @@
+﻿@page "/countries"
+
+@inject ISnackbar Snackbar
+@inject DbService _db
+@inject IDialogService DialogService
+@using System.Text.RegularExpressions
+@using System.ComponentModel.DataAnnotations
+
+<MudText Typo="Typo.h5" Color="Color.Primary" Class="mb-4">Countries</MudText>
+<MudGrid>
+    <MudItem lg="12" xs="12">
+        <MudPaper>
+            @if (isLoading)
+            {
+                <div style="text-align:center;">
+                    <MudProgressCircular Size="Size.Large" Color="Color.Default" Indeterminate="true" />
+                </div>
+            }
+            else
+            {
+                @if (showForm)
+                {
+                    <MudItem xs="12" md="6" lg="4">
+                        <MudForm>
+                            <MudTextField @bind-Value="@country.name" T="String" Label="Name" Required="true" RequiredError="Name is Required." />
+                            <MudButton ButtonType="ButtonType.Submit" OnClick="(e) => SaveCountry(country)">Save</MudButton>
+                            @if (country.students.Count == 0)
+                            {
+                                <MudButton Color="Color.Error" OnClick="(e) => deleteRecord(country.Id)">Delete</MudButton>
+                            }
+                        </MudForm>
+                    </MudItem>
+                    
+                }
+
+                <MudTable Items="@getCountries()" Dense="false" Hover="true" Bordered="false" Striped="false">
+                    <ToolBarContent>
+                        <MudText Typo="Typo.h6">Countries - @countriesList.Count</MudText>
+                        <MudSpacer />
+                        <MudIconButton Icon="@Icons.Material.Filled.Add" Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small" Class="ma-2" OnClick="(e) => showFormAction()" />
+                    </ToolBarContent>
+                    <HeaderContent>
+                        <MudTh>Name</MudTh>
+                        <MudTh>Created At</MudTh>
+                        <MudTh>Modified At</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Name"><MudButton Variant="Variant.Text" OnClick="@((e) => openRecordDialog(context))">@context.name</MudButton></MudTd>
+                        <MudTd DataLabel="Created At">@context.created_at</MudTd>
+                        <MudTd DataLabel="Modified At">@context.modified_at</MudTd>
+                    </RowTemplate>
+                    <PagerContent>
+                        <MudTablePager InfoFormat="@($"{infoFormat}")" HorizontalAlignment="HorizontalAlignment.Center" HidePageNumber="false" HidePagination="false" HideRowsPerPage="true" />
+                    </PagerContent>
+                </MudTable>
+            }
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+
+
+
+
+
+@code { 
+
+    //Variables
+    private string infoFormat = "{first_item}-{last_item} of {all_items}";
+
+    public bool isLoading = false;
+    public bool showForm = false;
+
+    List<countries> countriesList = new List<countries>();
+
+    private List<countries> getCountries()
+    {
+        countriesList = _db.StudentsPerCountry();
+        return countriesList;
+    }
+
+    
+
+    public countries country = new countries();
+
+    //Events
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        getCountries();
+        isLoading = false;
+    }
+
+    //Actions 
+
+    void showFormAction()
+    {
+        showForm = true;
+    }
+
+    void hideFormAction()
+    {
+        showForm = false;
+    }
+
+    private void openRecordDialog(countries record)
+    {
+        showFormAction();
+        country = record;
+    }
+
+    //Save
+    private void SaveCountry(countries record)
+    {
+        isLoading = true;
+        if (record.Id == 0)
+        {
+            _db.AddCountry(record);
+        }
+        else
+        {
+            _db.UpdateCountry(record);
+        }
+        country = new countries();
+        Snackbar.Add("Country Saved", Severity.Success);
+
+        showForm = false;
+        getCountries();
+        isLoading = false;
+
+    }
+
+    //Delete
+    private void deleteRecord(int id)
+    {
+        isLoading = true;
+        _db.DeleteCountry(id);
+        Snackbar.Add("Country Deleted", Severity.Success);
+        country = new countries();
+        getCountries();
+        hideFormAction();
+        isLoading = false;
+    }
+
+} 

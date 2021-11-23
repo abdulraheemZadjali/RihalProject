@@ -1,0 +1,139 @@
+﻿@page "/courses"
+
+@inject ISnackbar Snackbar
+@inject DbService _db
+@inject IDialogService DialogService
+@using System.Text.RegularExpressions
+@using System.ComponentModel.DataAnnotations
+
+<MudText Typo="Typo.h5" Color="Color.Primary" Class="mb-4">Classes</MudText>
+<MudGrid>
+    <MudItem lg="12" xs="12">
+        <MudPaper>
+            @if (isLoading)
+            {
+                <div style="text-align:center;">
+                    <MudProgressCircular Size="Size.Large" Color="Color.Default" Indeterminate="true" />
+                </div> 
+            }
+            else
+            {
+                @if (showForm)
+                {
+                    <MudItem xs="12" md="6" lg="4">
+                        <MudForm>
+                            <MudTextField @bind-Value="@course.class_name" T="String" Label="Name" Required="true" RequiredError="Class Name is Required." />
+                            <MudButton ButtonType="ButtonType.Submit" OnClick="(e) => SaveClass(course)">Save</MudButton>
+                            @if (course.students.Count == 0)
+                            {
+                                <MudButton Color="Color.Error" OnClick="(e) => deleteRecord(course.Id)">Delete</MudButton>
+                            }
+                            
+                        </MudForm>
+                    </MudItem>
+                }
+
+                    <MudTable Items="@getClasses()" Dense="false" Hover="true" Bordered="false" Striped="false">
+                        <ToolBarContent>
+                            <MudText Typo="Typo.h6">Classes - @classesList.Count</MudText>
+                            <MudSpacer />
+                            <MudIconButton Icon="@Icons.Material.Filled.Add" Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small" Class="ma-2" OnClick="(e) => showFormAction()" />
+                        </ToolBarContent>
+                        <HeaderContent>
+                            <MudTh>Name</MudTh>
+                            <MudTh>Created At</MudTh>
+                            <MudTh>Modified At</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Name"><MudButton Variant="Variant.Text" OnClick="@((e) => openRecordDialog(context))">@context.class_name</MudButton></MudTd>
+                            <MudTd DataLabel="Created At">@context.created_at</MudTd>
+                            <MudTd DataLabel="Modified At">@context.modified_at</MudTd>
+                        </RowTemplate>
+                        <PagerContent>
+                            <MudTablePager InfoFormat="@($"{infoFormat}")" HorizontalAlignment="HorizontalAlignment.Center" HidePageNumber="false" HidePagination="false" HideRowsPerPage="true" />
+                        </PagerContent>
+                    </MudTable>
+            }
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+
+@code {
+
+    //Variables
+    private string infoFormat = "{first_item}-{last_item} of {all_items}";
+
+    public bool isLoading = false;
+    public bool showForm = false;
+
+    List<classes> classesList = new List<classes>();
+
+    private List<classes> getClasses()
+    {
+        classesList = _db.StudentsPerClass();
+        return classesList;
+    }
+
+    public classes course = new classes();
+
+    //Events
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        getClasses();
+        isLoading = false;
+    }
+
+    //Actions
+
+    void showFormAction()
+    {
+        showForm = true;
+    }
+
+    void hideFormAction()
+    {
+        showForm = false;
+    }
+
+    private void openRecordDialog(classes record)
+    {
+        showFormAction();
+        course = record;
+    }
+
+    //Save
+    private void SaveClass(classes record)
+    {
+        isLoading = true;
+        if (record.Id == 0)
+        {
+            _db.AddClass(record);
+        }
+        else
+        {
+            _db.UpdateClass(record);
+        }
+        course = new classes();
+        Snackbar.Add("Class Saved", Severity.Success);
+
+        showForm = false;
+        getClasses();
+        isLoading = false;
+
+    }
+
+    //Delete
+    private void deleteRecord(int id)
+    {
+        isLoading = true;
+        _db.DeleteClass(id);
+        Snackbar.Add("Class Deleted", Severity.Success);
+        course = new classes();
+        getClasses();
+        hideFormAction();
+        isLoading = false;
+    }
+
+} 

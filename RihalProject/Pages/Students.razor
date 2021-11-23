@@ -1,0 +1,178 @@
+﻿@page "/students"
+
+@inject ISnackbar Snackbar
+@inject DbService _db
+@inject IDialogService DialogService
+@using System.Text.RegularExpressions
+@using System.ComponentModel.DataAnnotations
+
+<MudText Typo="Typo.h5" Color="Color.Primary" Class="mb-4">Students</MudText>
+<MudGrid>
+    <MudItem lg="12" xs="12">
+        <MudPaper>
+            @if (isLoading)
+            {
+                <div style="text-align:center;">
+                    <MudProgressCircular Size="Size.Large" Color="Color.Default" Indeterminate="true" />
+                </div> 
+            }
+            else
+            {
+            @if (showForm)
+            {
+                <MudItem xs="12">
+                    <MudForm>
+                        <MudItem xs="12" md="6" lg="4">
+                            <MudTextField @bind-Value="@student.name" T="String" Label="Name" Required="true" RequiredError="Student Name is Required." />
+                        </MudItem>
+                        <MudItem xs="12" md="6" lg="4">
+                            <MudSelect @bind-Value="@student.country_id" T="int" Label="Country" Required="true" RequiredError="This field is required.">
+                                @foreach (var item in getCountries())
+                                {
+                                    <MudSelectItem Value="@item.Id">@item.name</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>        
+                        <MudItem xs="12" md="6" lg="4">
+                            <MudSelect @bind-Value="@student.class_id" T="int" Label="Country" Required="true" RequiredError="This field is required.">
+                                @foreach (var item in getClasses())
+                                { 
+                                    <MudSelectItem Value="@item.Id">@item.class_name</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="12" md="6" lg="4">
+                            <MudDatePicker @bind-Date="@student.date_of_birth" Label="Date of Birth" Required="true" RequiredError="Date of Birth is required."></MudDatePicker>
+                        </MudItem>
+                        <MudItem xs="12" md="12">
+                            <MudButton ButtonType="ButtonType.Submit" OnClick="(e) => SaveStudent(student)">Save</MudButton>
+                            <MudButton Color="Color.Error" OnClick="(e) => deleteRecord(student.Id)">Delete</MudButton>
+                        </MudItem>
+                    </MudForm>
+                </MudItem>
+            }
+
+                <MudTable Items="@getStudents()" Dense="false" Hover="true" Bordered="false" Striped="false">
+                    <ToolBarContent>
+                        <MudText Typo="Typo.h6">Student - @studentList.Count</MudText>
+                        <MudSpacer />
+                        <MudIconButton Icon="@Icons.Material.Filled.Add" Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small" Class="ma-2" OnClick="(e) => showFormAction()" />
+                    </ToolBarContent>
+                    <HeaderContent>
+                        <MudTh>Name</MudTh>
+                        <MudTh>Date of Birth</MudTh>
+                        <MudTh>Country</MudTh>
+                        <MudTh>Class</MudTh>
+                        <MudTh>Created At</MudTh>
+                        <MudTh>Modified At</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Name"><MudButton Variant="Variant.Text" OnClick="@((e) => openRecordDialog(context))">@context.name</MudButton></MudTd>
+                        <MudTd DataLabel="Date of Birth">@context.date_of_birth</MudTd>
+                        <MudTd DataLabel="Country">@context.country.name</MudTd>
+                        <MudTd DataLabel="Class">@context.classes.class_name</MudTd>
+                        <MudTd DataLabel="Created At">@context.created_at</MudTd>
+                        <MudTd DataLabel="Modified At">@context.modified_at</MudTd>
+                    </RowTemplate>
+                    <PagerContent>
+                        <MudTablePager InfoFormat="@($"{infoFormat}")" HorizontalAlignment="HorizontalAlignment.Center" HidePageNumber="false" HidePagination="false" HideRowsPerPage="true" />
+                    </PagerContent>
+                </MudTable>
+            }
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+
+@code { //Variables
+    private string infoFormat = "{first_item}-{last_item} of {all_items}";
+
+    public bool isLoading = false;
+    public bool showForm = false;
+    DateTime? date = DateTime.Today;
+
+    List<students> studentList = new List<students>();
+    List<countries> countriesList = new List<countries>();
+    List<classes> classesList = new List<classes>();
+
+    private List<students> getStudents()
+    {
+        studentList = _db.GetStudents();
+        return studentList;
+    }
+
+    private List<countries> getCountries()
+    {
+        countriesList = _db.GetCountries();
+        return countriesList;
+    }
+    private List<classes> getClasses()
+    {
+        classesList = _db.GetClasses();
+        return classesList;
+    }
+
+    public students student = new students();
+
+    //Events
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        getStudents();
+        isLoading = false;
+    }
+
+    //Actions
+
+    void showFormAction()
+    {
+        showForm = true;
+        if (student.Id == 0)
+        {
+            student.date_of_birth = DateTime.Today;
+        }
+    }
+
+    void hideFormAction()
+    {
+        showForm = false;
+    }
+
+    private void openRecordDialog(students record)
+    {
+        showFormAction();
+        student = record;
+    }
+
+    //Save
+    private void SaveStudent(students record)
+    {
+        isLoading = true;
+        if (record.Id == 0)
+        {
+            _db.AddStudent(record);
+        }
+        else
+        {
+            _db.UpdateStudent(record);
+        }
+        student = new students();
+        Snackbar.Add("Student Saved", Severity.Success);
+
+        showForm = false;
+        getStudents();
+        isLoading = false;
+
+    }
+
+    //Delete
+    private void deleteRecord(int id)
+    {
+        isLoading = true;
+        _db.DeleteStudent(id);
+        Snackbar.Add("Student Deleted", Severity.Success);
+        student = new students();
+        getStudents();
+        hideFormAction();
+        isLoading = false;
+    } } 
