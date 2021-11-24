@@ -70,7 +70,7 @@
 @code {
 
     private string infoFormat = "{first_item}-{last_item} of {all_items}";
-
+    bool isLoading = false;
     //List Variables
     List<countries> countries = new List<countries>();
     List<students> students = new List<students>();
@@ -103,6 +103,7 @@
 
     private async Task fakerData()
     {
+        
         //Faker
         List<countries> randomCountries = getStudentsPerCountries();
         List<classes> randomClasses = getStudentsPerClass();

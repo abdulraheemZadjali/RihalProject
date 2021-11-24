@@ -24,7 +24,7 @@
                         <MudForm>
                             <MudTextField @bind-Value="@country.name" T="String" Label="Name" Required="true" RequiredError="Name is Required." />
                             <MudButton ButtonType="ButtonType.Submit" OnClick="(e) => SaveCountry(country)">Save</MudButton>
-                            @if (country.students.Count == 0)
+                            @if (country != null && country.Id != 0 && country.students.Count == 0)
                             {
                                 <MudButton Color="Color.Error" OnClick="(e) => deleteRecord(country.Id)">Delete</MudButton>
                             }
